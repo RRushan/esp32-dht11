@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Мониторинг DHT11</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    body { font-family: Arial; background: #1a1a2e; color: #eee; margin: 0; padding: 20px; }
+    h1 { text-align: center; color: #00d4ff; }
+    .cards { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
+    .card { background: #16213e; border-radius: 12px; padding: 20px 40px; text-align: center; }
+    .card .value { font-size: 48px; font-weight: bold; color: #00d4ff; }
+    .card .label { font-size: 14px; color: #aaa; margin-top: 5px; }
+    .chart-box { background: #16213e; border-radius: 12px; padding: 20px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>🌡 Мониторинг DHT11</h1>
+
+  <div class="cards">
+    <div class="card">
+      <div class="value" id="temp">--</div>
+      <div class="label">Температура °C</div>
+    </div>
+    <div class="card">
+      <div class="value" id="hum">--</div>
+      <div class="label">Влажность %</div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="tempChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <canvas id="humChart"></canvas>
+  </div>
+
+  <script>
+    const tempChart = new Chart(document.getElementById('tempChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Температура °C', data: [],
+        borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,0.1)',
+        tension: 0.4, fill: true }] },
+      options: { plugins: { legend: { labels: { color: '#eee' } } },
+        scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
+    });
+
+    const humChart = new Chart(document.getElementById('humChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Влажность %', data: [],
+        borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.1)',
+        tension: 0.4, fill: true }] },
+      options: { plugins: { legend: { labels: { color: '#eee' } } },
+        scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
+    });
+
+    async function update() {
+      const res  = await fetch('/history');
+      const data = await res.json();
+      const reversed = data.reverse();
+
+      const labels = reversed.map(d => d.time.slice(11, 19));
+      const temps  = reversed.map(d => d.temperature);
+      const hums   = reversed.map(d => d.humidity);
+
+      // Карточки
+      document.getElementById('temp').textContent = temps[temps.length-1].toFixed(1);
+      document.getElementById('hum').textContent  = hums[hums.length-1].toFixed(1);
+
+      // Графики
+      tempChart.data.labels = labels;
+      tempChart.data.datasets[0].data = temps;
+      tempChart.update();
+
+      humChart.data.labels = labels;
+      humChart.data.datasets[0].data = hums;
+      humChart.update();
+    }
+
+    update();
+    setInterval(update, 5000);  // обновление каждые 5 сек
+  </script>
+</body>
+</html>
